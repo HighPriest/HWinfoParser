@@ -1,9 +1,11 @@
 
 
-$output = Get-ChildItem -Path .\ -Filter *.xml -Recurse -File -Name| ForEach-Object {
-    $file = Resolve-Path $_
-    [System.Xml.XmlDocument] $xdoc = new-object System.Xml.XmlDocument
-    $xdoc.Load($file)
+$output = Get-ChildItem -Path .\ -Filter *.xml -Recurse -File -Name| ForEach-Object { #Begin searching for XML files in directory of the file
+    $file = Resolve-Path $_ #Create a path of found file for the XDoc
+    [System.Xml.XmlDocument] $xdoc = new-object System.Xml.XmlDocument #Create a XML doc object
+    $xdoc.Load($file) #Parse the file into XML object structure
+
+    ##MOST USEFUL NODES FOR INVENTORY CREATION (There are more available, that are not human readable)
 
     $os_node =       $xdoc.SelectNodes("/HWINFO/COMPUTER") # XPath is case sensitive
     $cpu_node =      $xdoc.SelectNodes("/HWINFO/COMPUTER/SubNodes/CPU")
@@ -16,7 +18,8 @@ $output = Get-ChildItem -Path .\ -Filter *.xml -Recurse -File -Name| ForEach-Obj
     $sound_node =    $xdoc.SelectNodes("/HWINFO/COMPUTER/SubNodes/SOUND")
     $network_node =  $xdoc.SelectNodes("/HWINFO/COMPUTER/SubNodes/NETWORK")
 
-    New-Object -TypeName PSObject -Property ([ordered]@{
+
+    New-Object -TypeName PSObject -Property ([ordered]@{ ##Function to create a single XML object (single XML parse) that can be printed out
         'Owner' = Split-Path (Split-Path $file -Parent) -Leaf
         'Division' = Split-Path (Split-Path (Split-Path $file -Parent) -Parent) -Leaf
         'Computer Name' = $os_node.SelectNodes("Property[Entry = 'Computer Name']").Description
@@ -40,7 +43,7 @@ $output = Get-ChildItem -Path .\ -Filter *.xml -Recurse -File -Name| ForEach-Obj
         'Motherboard Chipset' = $mobo_node.SelectNodes("Property[Entry = 'Motherboard Chipset']").Description
         'USB Version Supported' = $mobo_node.SelectNodes("Property[Entry = 'USB Version Supported']").Description
         'RAID Capability' = $mobo_node.SelectNodes("Property[Entry = 'RAID Capability']").Description
-        'UEFI Bios' = $mobo_node.SelectNodes("Property[Entry = 'UEFI BIOS']").Description #?????
+        'UEFI Bios' = $mobo_node.SelectNodes("Property[Entry = 'UEFI BIOS']").Description #????? Returns odd information
         'Processor Socket' = $mobo_node.SelectNodes("SubNode[NodeName = 'SMBIOS DMI']/SubNode[NodeName = 'Processor']/Property[Entry = 'Processor Upgrade']").Description
         'ECC' = If ($mobo_node.SelectNodes("Property[Entry = 'ECC']").Description) {"Supported"} Else {"Not Supported"} #If not found then not supported
         'DDR3' = If ($mobo_node.SelectNodes("Property[Entry = 'DDR3']").Description) {"Not Supported"} Else {"Supported"} #If not found then supported
@@ -60,4 +63,4 @@ $output = Get-ChildItem -Path .\ -Filter *.xml -Recurse -File -Name| ForEach-Obj
     
 }
 
-$output | Export-Csv -Path .\HWiNFO-Export.csv -Encoding UTF8 -NoTypeInformation -Delimiter ';'
+$output | Export-Csv -Path .\HWiNFO-Export.csv -Encoding UTF8 -NoTypeInformation -Delimiter ';' ##Export to CSV all found objects
